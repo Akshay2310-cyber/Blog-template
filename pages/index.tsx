@@ -1,4 +1,5 @@
-//index.tsx                                                                           
+//index.tsx    
+//blog-project/pages/index.tsx                                                                       
 import React from "react";
 import Image from "next/image";
 import Head from "next/head";

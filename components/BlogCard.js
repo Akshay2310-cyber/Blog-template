@@ -1,3 +1,5 @@
+//BlogCard.js
+//blog-project/components/BlogCard.js
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";

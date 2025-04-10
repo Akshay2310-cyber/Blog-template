@@ -1,3 +1,5 @@
+//blogs.js
+//blog-project/data/blogs.js
 export const blogs = [
   {
     id: "spain-budget",

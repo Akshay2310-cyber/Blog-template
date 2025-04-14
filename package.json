@@ -3,23 +3,32 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts nodemon server.ts",
+    "build": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload build && next build",
+    "start": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts NODE_ENV=production node dist/server.js",
+    "generate:types": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload generate:types",
+    "generate:graphQLSchema": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload generate:graphQLSchema"
   },
   "dependencies": {
     "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/typography": "^0.5.16",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "mongodb": "^6.15.0",
     "next": "^14.0.0",
+    "payload": "^3.34.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
     "@types/react": "19.1.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.1.9",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
     "typescript": "5.8.2"
   }
 }

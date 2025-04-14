@@ -1,10 +1,8 @@
-//[slug].js
-//blog-project/pages/blog/[slug].js
 import React from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
-import { blogs } from "../../data/blogs";
+import payload from "payload";
 import BlogCard from "../../components/BlogCard";
 
 const BlogPostPage = ({ blog, relatedBlogs }) => {
@@ -33,10 +31,9 @@ const BlogPostPage = ({ blog, relatedBlogs }) => {
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-4">
               <div className="text-center max-w-3xl">  
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-4">spain</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-4">{blog.location}</h1>
                 <p className="text-xs sm:text-base mb-3 sm:mb-6 max-w-xl mx-auto">
-                  Discover spain's enchanting City Lights, while exploring its rich traditions 
-                  across stunning landscapes on a guided adventure.
+                  {blog.excerpt}
                 </p>
                 
                 <button className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-5 py-1 sm:py-2 rounded-md inline-flex items-center mt-2 text-xs sm:text-base font-medium">
@@ -68,15 +65,14 @@ const BlogPostPage = ({ blog, relatedBlogs }) => {
               <h2 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-4 text-gray-900">
                 {section.title}
               </h2>
-              <p className="text-sm sm:text-base mb-4 sm:mb-6 text-gray-800">
-                {section.text}
-              </p> 
+              <div className="text-sm sm:text-base mb-4 sm:mb-6 text-gray-800" 
+                   dangerouslySetInnerHTML={{ __html: section.text }} />
               
               {section.image && (
                 <div className="rounded-lg overflow-hidden mb-4 sm:mb-6">
                   <Image
-                    src={section.image}   
-                    alt={section.title}
+                    src={section.image.url}   
+                    alt={section.image.alt || section.title}
                     width={800}
                     height={400}
                     className="w-full h-48 sm:h-64 md:h-96 object-cover"
@@ -113,7 +109,7 @@ const BlogPostPage = ({ blog, relatedBlogs }) => {
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4 sm:h-5 sm:w-5 mr-1"
                 viewBox="0 0 20 20"
-                fill="currentColor"
+                fill="currentColor" 
               >
                 <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
               </svg>
@@ -153,37 +149,103 @@ const BlogPostPage = ({ blog, relatedBlogs }) => {
   );
 };
 
-// Static paths and props
-export async function getStaticPaths() {
-  const paths = blogs.map((blog) => ({
-    params: { slug: blog.id },
-  }));
+// Server-side data fetching
+export async function getServerSideProps({ params }) {
+  try {
+    const { slug } = params;
+    
+    // Fetch the blog post
+    const blogData = await payload.find({
+      collection: 'blogs',
+      where: {
+        id: {
+          equals: slug,
+        },
+      },
+      depth: 2,
+    });
 
-  return {
-    paths,
-    fallback: false,
-  };
-}
+    if (!blogData.docs.length) {
+      return {
+        notFound: true,
+      };
+    }
 
-export async function getStaticProps({ params }) {
-  const blog = blogs.find((blog) => blog.id === params.slug);
-  
-  const relatedBlogs = blogs
-    .filter((relatedBlog) => relatedBlog.id !== params.slug) 
-    .slice(0, 3);
-  
-  if (!blog) {
+    const blogPost = blogData.docs[0];
+    
+    // Fetch related blogs
+    const relatedBlogsData = await payload.find({
+      collection: 'blogs',
+      where: {
+        and: [
+          {
+            id: {
+              not_equals: slug,
+            }
+          },
+          {
+            status: {
+              equals: 'published',
+            }
+          }
+        ]
+      },
+      limit: 3,
+      depth: 1,
+    });
+
+    // Format the blog post data
+    const blog = {
+      id: blogPost.id,
+      title: blogPost.title,
+      author: typeof blogPost.author === 'object' ? blogPost.author.name : 'Unknown Author',
+      date: blogPost.publishedDate ? new Date(blogPost.publishedDate).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      }) : 'Unknown Date',
+      image: typeof blogPost.image === 'object' ? blogPost.image.url : '/images/blogcard.jpeg',
+      readTime: blogPost.readTime || '5 min read',
+      excerpt: blogPost.excerpt,
+      location: blogPost.location || 'Unknown Location',
+      content: blogPost.content.map(section => ({
+        title: section.title,
+        text: section.text.html || section.text, // Handle rich text format
+        image: section.image ? {
+          url: section.image.url,
+          alt: section.image.alt || section.title
+        } : null
+      }))
+    };
+
+    // Format related blogs
+    const relatedBlogs = relatedBlogsData.docs.map(relatedBlog => ({
+      id: relatedBlog.id,
+      title: relatedBlog.title,
+      author: typeof relatedBlog.author === 'object' ? relatedBlog.author.name : 'Unknown Author',
+      date: relatedBlog.publishedDate ? new Date(relatedBlog.publishedDate).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      }) : 'Unknown Date',
+      image: typeof relatedBlog.image === 'object' ? relatedBlog.image.url : '/images/blogcard.jpeg',
+      readTime: relatedBlog.readTime || '5 min read',
+      excerpt: relatedBlog.excerpt,
+      location: relatedBlog.location || 'Unknown Location',
+    }));
+
+    return {
+      props: {
+        blog,
+        relatedBlogs,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching blog post:', error);
     return {
       notFound: true,
     };
   }
-
-  return {
-    props: {
-      blog,
-      relatedBlogs, 
-    },
-  };
 }
 
 export default BlogPostPage;

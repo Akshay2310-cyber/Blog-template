@@ -9,7 +9,7 @@ const BlogCard = ({ blog }) => {
     return <div className="text-center text-gray-500 p-4">Loading blog post...</div>;
   }
   
-  return (
+  return (   
     <div className="bg-white overflow-hidden rounded-lg shadow-md w-full max-w-md mx-auto">
       <div className="relative h-64">
         {blog.image && (
